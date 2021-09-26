@@ -1,0 +1,6 @@
+.DS_Store
+*.rkt~
+config.json
+data
+ozytree_reports
+
