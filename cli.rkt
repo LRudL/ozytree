@@ -5,7 +5,6 @@
          "utils.rkt"
          "tree.rkt"
          "action-structs.rkt"
-         "printing.rkt"
          "history-management.rkt"
          (for-syntax racket/base))
 
@@ -78,7 +77,7 @@
     value))
 
 (define (configure-id-generator-with-tree tree)
-  (set! generate-id (get-generator (max-node-id tree))))
+  (set! generate-id (get-generator (max-id-in-tree-rooted-at tree))))
 
 (define-syntax args-str->num
   (λ (stx)

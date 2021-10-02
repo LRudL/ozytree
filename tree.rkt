@@ -3,6 +3,7 @@
 (require racket/match
          racket/function
          threading
+         "utils.rkt"
          "tree-structs.rkt"
          "printing.rkt")
 
@@ -16,7 +17,11 @@
          get-node-entry
          move-node
          set-node-info-prop
-         max-node-id)
+         max-id-in-tree-rooted-at
+         size-of-tree-rooted-at
+         ; printing:
+         tree-printed-lines
+         print-tree)
 
 
 (define (put-node-under tree node parent-node-id)
@@ -79,15 +84,24 @@
         (remove-node-by-id node-id)
         (put-node-under node new-parent-id))))
 
-(define (max-node-id tree)
-  (let ((child-max (apply max
-                          (cons 1
-                                (map max-node-id
-                                     (task-children tree))))))
-    (max child-max
-         (task-id tree))))
+(define (node-reduce node-fn aggregating-fn tree)
+  (let ((child-vals (map (curry node-reduce node-fn aggregating-fn)
+                         (task-children tree))))
+    (apply aggregating-fn
+           (cons (node-fn tree)
+                 child-vals))))
 
-(define test
+(define (size-of-tree-rooted-at tree)
+  (node-reduce (compose task-entry-size task-info)
+               +
+               tree))
+
+(define (max-id-in-tree-rooted-at tree)
+  (node-reduce task-id
+               max
+               tree))
+
+(define test ; a test tree for testing during development
   (task 0 (task-entry "root" 'incomplete 1)
         (list
          (task 1 (task-entry "a" 'incomplete 1)
@@ -96,3 +110,30 @@
                       (list))))
          (task 3 (task-entry "b" 'incomplete 10)
                (list)))))
+
+
+
+;; TREE PRINTING FUNCTIONS
+
+(define (entry-print entry entire-size)
+  (string-append (task-entry-text entry)
+                 " (own size: "
+                 (number->string (task-entry-size entry))
+                 " / total size: "
+                 (number->string entire-size)
+                 ")"))
+
+(define indent "   ")
+
+(define (tree-printed-lines node)
+  (cons (string-append (if (equal? 'incomplete (task-state node))
+                           "> Task "
+                           " task ")
+                       (number->string (task-id node))
+                       ": " (entry-print (task-info node)
+                                         (size-of-tree-rooted-at node)))
+        (map (curry string-append indent)
+             (mapcat tree-printed-lines (task-children node)))))
+
+(define (print-tree node)
+  (map displayln (tree-printed-lines node)))

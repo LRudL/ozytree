@@ -8,7 +8,7 @@
          json
          "cli.rkt"
          "setup.rkt"
-         "printing.rkt"
+         "tree.rkt"
          "history-management.rkt"
          "history-loading.rkt"
          (for-syntax racket/base
