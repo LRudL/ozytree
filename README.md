@@ -32,5 +32,17 @@ Help will eventually be available in the program itself through the currently-un
 
 ## Version history
 ### Pre-release
-#### v0.1
-- Initial release
+#### v0.2.0
+2021-10-02
+
+**Features**:
+
+- Total size of task tree rooted at each node now displayed in print-out.
+- Nicer and more informative logging messages for `undo`, `commit`, and on startup.
+
+**Internal**:
+- Refactored maximum node id finder with a new general tree reducer.
+- Deleted `printing.rkt`, functionality moved into `tree.rkt`.
+
+#### v0.1.0
+- Initial
