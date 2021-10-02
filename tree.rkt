@@ -4,8 +4,7 @@
          racket/function
          threading
          "utils.rkt"
-         "tree-structs.rkt"
-         "printing.rkt")
+         "tree-structs.rkt")
 
 (provide task
          task-entry
