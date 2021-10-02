@@ -174,7 +174,9 @@
         (list)
         (λ (commands)
           (if (null? commands)
-              '()
+              (begin
+                (displayln "No uncommitted commands to undo.")
+                '())
               (cdr commands)))))
 
 (define interpret-undo interpret-undo*)
@@ -211,8 +213,13 @@
   (list 'list
         (list)
         (λ (tree commands)
-          (displayln "All uncommitted actions:")
-          (map displayln (map action-cmd commands)))))
+          (if (null? commands)
+              (displayln "No uncommitted actions.")
+              (begin
+                (displayln "All uncommitted actions:")
+                (map (λ (s)
+                       (displayln (string-append " - " s)))
+                     (map action-cmd commands)))))))
 
 (define interpret-list interpret-list*)
 

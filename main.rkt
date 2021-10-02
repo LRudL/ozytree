@@ -55,6 +55,7 @@
                (command-loop tree commands)))
             ('commit
              ((action-fn act) tree commands)
+             (displayln "COMMITTED all actions; no unsaved actions left.")
              (command-loop (apply-actions-to-tree tree commands)
                            '()))
             (_ (raise "Error: something very strange happened in command-loop")))))))
