@@ -1,5 +1,7 @@
 .DS_Store
 *.rkt~
+*.rkt#
+.#*.rkt
 config.json
 data
 ozytree_reports
