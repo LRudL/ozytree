@@ -79,8 +79,8 @@
 (define (configure-id-generator-with-tree tree)
   (set! generate-id (get-generator (max-id-in-tree-rooted-at tree))))
 
-(define (arity-error tokens)
-  (list 'invalid-arity-error
+(define (generic-error tokens)
+  (list 'generic-invalid-command-error
         (cdr tokens)
         (λ (tree) tree)))
 
@@ -120,18 +120,14 @@
                                           (cdr tokens-raw)))
                               tokens-raw))
                   (name.parser (get-cmd-name-and-parser tokens)))
-             (if (not (pair? name.parser))
-                 (list 'generic-invalid-command-error
-                       (cdr tokens)
-                       (λ (tree) tree))
+             (if (not (pair? name.parser))                 
+                 (generic-error tokens)
                  (let* ((cmd-name (car name.parser))
                         (parser (cdr name.parser))
                         (interpreter (get-cmd-interpreter cmd-name)))
                    (if (not (procedure? interpreter))
-                       (list 'generic-invalid-command-error
-                             (cdr tokens)
-                             (λ (tree) tree))
+                       (generic-error tokens)
                        (let ((bindings (parser tokens)))
                          (if bindings
                              (interpreter bindings)
-                             (arity-error tokens))))))))))
+                             (generic-error tokens))))))))))
