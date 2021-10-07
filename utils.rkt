@@ -10,6 +10,12 @@
 (provide
  dbprint
  ; debug printer; println-s a value and then returns it
+ butlast
+ ; returns all but the last element of a list
+ all-true?
+ ; returns true if there is no #f in a list
+ not-all-false?
+ ; returns true if there is at least one truthy value in the list
  intersperse
  ; takes lists and returns the list you get from taking an element
  ; from one, then the next, and so on, looping around after reaching
@@ -77,6 +83,17 @@
   (begin
     (set! x v)
     x))
+
+(define (butlast l)
+  (take l (- (length l) 1)))
+
+(define (all-true? l)
+  (foldl (λ (x y) (and x y))
+         #t l))
+
+(define (not-all-false? l)
+  (foldl (λ (x y) (or x y))
+         #f l))
 
 (define (intersperse . lists)
   (let ((non-empty-lists
