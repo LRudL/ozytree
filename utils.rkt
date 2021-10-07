@@ -73,6 +73,8 @@
  ; an even-numbered list of args after the first arg (f)
  ; of the form:
  ; arg-index converter-for-that-index ...
+ set-match
+ ; like match, except instead of matching on equality, matches on set membership
  )
 
 (define (dbprint x)
@@ -256,3 +258,13 @@
                                        string->list)))
                    list-prefix?))
 
+(define-syntax set-match
+  (syntax-rules ()
+    ((set-match x)
+     (raise (format "No matching clause in set-match for ~a" x)))
+    ((set-match x (#t then))
+     then)
+    ((set-match x (a-set then) rest-forms ... )
+     (if (set-member? a-set x)
+         then
+         (set-match x rest-forms ...)))))
