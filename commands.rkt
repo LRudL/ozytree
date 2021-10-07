@@ -57,7 +57,7 @@
                        ,(apply string-append (append (list help-start "\n"
                                                            "Arguments:\n")
                                                      (map (λ (s)
-                                                            (format "~s\n" s))
+                                                            (format "- ~s\n" s))
                                                           (cdr spec))
                                                      (list "\n"))))
             (define
@@ -190,6 +190,23 @@
                 "Commits commands you have entered to your history file."
                 (λ (bindings-lookup tree commands)
                   (add-commands-to-history-file commands)))
+
+(create-command viewing-command help
+                ("help" (with-defaults command-name "all"
+                          (maybe command-name)))
+                "If no args: view list of commands; else, view help info for command specified in first argument."
+                (λ (bindings-lookup tree commands)
+                  (let ((cmd-name (bindings-lookup 'command-name)))
+                    (if (set-member? all-command-names (string->symbol cmd-name))
+                        (begin
+                          (displayln (format "HELP FOR: ~a" cmd-name))
+                          (display (hash-ref command-help-texts
+                                             (string->symbol cmd-name))))
+                        (begin
+                          (displayln "THE AVAILABLE COMMANDS ARE:")
+                          (map (λ (cmd-name)
+                                 (displayln (format " - ~a" cmd-name)))
+                               (set->list all-command-names)))))))
 
 (set! command-name-and-parser-pairs
       ; right now this does nothing;
