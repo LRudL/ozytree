@@ -6,11 +6,11 @@
          "tree.rkt"
          "action-structs.rkt"
          "history-management.rkt"
+         "commands.rkt"
          (for-syntax racket/base))
 
 (provide tokenise
          get-interpreter
-         get-interpreter-arity
          (struct-out action)
          configure-id-generator-with-tree
          interpret-cmd)
@@ -79,203 +79,59 @@
 (define (configure-id-generator-with-tree tree)
   (set! generate-id (get-generator (max-id-in-tree-rooted-at tree))))
 
-(define-syntax args-str->num
-  (λ (stx)
-    (let* ((forms (syntax->datum stx))
-           (fn (cadr forms))
-           (arg-nums (cddr forms)))
-      (datum->syntax stx
-                     (append
-                      `(convert-numbered-args ,fn
-                                              string->number)
-                      arg-nums)))))
-
-(define (interpret-make* new-node-id parent-id task-text size)
-  (list 'make
-        (list parent-id
-              task-text
-              size)        
-        (λ (tree)
-          (put-node-under tree
-                          (task new-node-id
-                                (task-entry task-text
-                                            'incomplete
-                                            size)
-                                '())
-                          parent-id))))
-
-(define interpret-make ; note: new-node-id is already a number, taken directly from generate-id
-  (args-str->num interpret-make* 1 3))
-
-(define (interpret-delete* node-id)
-  (list 'delete
-        (list node-id)
-        (λ (tree)
-          (remove-node-by-id tree node-id))))
-
-(define interpret-delete
-  (args-str->num interpret-delete* 0))
-
-(define (interpret-move* node-id _under_ new-parent-node-id)
-  (list 'move
-        (list node-id new-parent-node-id)
-        (λ (tree)
-          (move-node tree node-id new-parent-node-id))))
-
-(define interpret-move
-  (args-str->num interpret-move* 0 2))
-
-(define (interpret-set* node-id prop new-val)
-  (list 'set
-        (list node-id prop new-val)
-        (λ (tree)
-          (set-node-info-prop tree node-id prop new-val))))
-
-(define interpret-set
-  (converters-on-numbered-args
-   interpret-set*
-   0 string->number
-   1 string->symbol))
-
-(define (interpret-mark* node-id)
-  (list 'mark
-        (list node-id)
-        (λ (tree)
-          (set-node-info-prop tree
-                              node-id
-                              'state
-                              'complete))))
-
-(define interpret-mark
-  (args-str->num interpret-mark* 0))
-
-(define (interpret-unmark* node-id)
-  (list 'unmark
-        (list node-id)
-        (λ (tree)
-          (set-node-info-prop tree
-                              node-id
-                              'state
-                              'incomplete))))
-
-(define interpret-unmark
-  (args-str->num interpret-unmark* 0))
-
-(define (interpret-reset*)
-  (list 'reset
-        (list)
-        (λ (commands) '())))
-
-(define interpret-reset interpret-reset*)
-
-(define (interpret-undo*)
-  (list 'undo
-        (list)
-        (λ (commands)
-          (if (null? commands)
-              (begin
-                (displayln "No uncommitted commands to undo.")
-                '())
-              (cdr commands)))))
-
-(define interpret-undo interpret-undo*)
-
-(define (interpret-view*)
-  (list 'view
-        (list)
-        (λ (tree commands)
-          (displayln "---------TREE---------")
-          (print-tree tree)
-          (displayln "----------------------"))))
-
-(define interpret-view interpret-view*)
-
-(define (interpret-preview*)
-  (list 'preview
-        (list)
-        (λ (tree commands)
-          (displayln "----TREE (PREVIEW)----")
-          (print-tree (apply-actions-to-tree tree commands))
-          (displayln "----------------------"))))
-
-(define interpret-preview interpret-preview*)
-
-(define (interpret-commit*)
-  (list 'commit
-        (list)
-        (λ (tree commands)
-          (add-commands-to-history-file commands))))
-
-(define interpret-commit interpret-commit*)
-
-(define (interpret-list*)
-  (list 'list
-        (list)
-        (λ (tree commands)
-          (if (null? commands)
-              (displayln "No uncommitted actions.")
-              (begin
-                (displayln "All uncommitted actions:")
-                (map (λ (s)
-                       (displayln (string-append " - " s)))
-                     (map action-cmd commands)))))))
-
-(define interpret-list interpret-list*)
-
-(define (get-interpreter s)
-  (match (car (tokenise s))
-    ("make"    interpret-make)
-    ("delete"  interpret-delete)
-    ("move"    interpret-move)
-    ("set"     interpret-set)
-    ("mark"    interpret-mark)
-    ("unmark"  interpret-unmark)
-    ("reset"   interpret-reset)
-    ("view"    interpret-view)
-    ("preview" interpret-preview)
-    ("undo"    interpret-undo)
-    ("commit"  interpret-commit)
-    ("list"    interpret-list)
-    (_         'no-interpreter)))
-
-(define (valid-command-prefix? s)
-  (not (equal? (get-interpreter s) 'no-interpreter)))
-
-(define (get-interpreter-arity s)
-  (if (valid-command-prefix? s)
-      (eval (list
-             'procedure-arity
-             (string->symbol (string-append "interpret-" s "*")))
-            ns)
-      (raise (string-append
-              "get-interpreter-arity: Cannot get arity for invalid command prefix: "
-              s))))
-
 (define (arity-error tokens)
   (list 'invalid-arity-error
         (cdr tokens)
         (λ (tree) tree)))
 
+(define (get-cmd-name-and-parser s)
+  (define (finder s pairs)
+    (if (null? pairs)
+        'no-interpreter
+        (let ((cmd-name (caar pairs))
+              (cmd-parser (cdar pairs)))
+          (if (cmd-parser s)
+              (car pairs)
+              (finder s (cdr pairs))))))
+  (finder s command-name-and-parser-pairs))
+
+(define (get-cmd-interpreter cmd-name)
+  (hash-ref command-interpreter-table cmd-name
+            (λ ()
+              (raise
+               "Error: tried to get and run command interpreter that does not exist"))))
+
+(define (get-interpreter s)
+  (get-cmd-interpreter (car (get-cmd-name-and-parser s))))
+
 (define (interpret-cmd s)
-  (apply action
-         (append (list s)                 
-                 (let ((tokens (tokenise s)))
-                   (let ((interpreter (get-interpreter (car tokens))))
-                     (cond ((equal? interpreter 'no-interpreter)
-                            (list 'invalid-prefix-error
-                               (cdr tokens)
-                               (λ (tree) tree)))
-                           ((equal? (car tokens) "make")
-                            ; uglyish: we have an exception for make, because
-                            ; need to call generate-id when interpreting,
-                            ; but not e.g. when preview leads to applying it as part of
-                            ; going through the actions list (with apply-actions-to-tree)
-                            (if (= (- (procedure-arity interpret-make*) 1)
-                                   (length (cdr tokens)))
-                                (apply interpret-make (cons (generate-id)
-                                                            (cdr tokens)))
-                                (arity-error tokens)))
-                           ((= (get-interpreter-arity (car tokens))
-                               (length (cdr tokens)))
-                            (apply interpreter (cdr tokens)))
-                           (#t (arity-error tokens))))))))
+  (apply
+   action
+   (append (list s)                 
+           (let* ((tokens-raw (tokenise s))
+                  (tokens (if (equal? (car tokens-raw) "make")
+                              ; Hacky: make takes as an extra argument the
+                              ; id, which is generated rather than user-supplied.
+                              ; Needs to be done already at this stage
+                              ; because next we compute the name.parser pair;
+                              ; this requires make commands in their "full" form.
+                              (cons "make"
+                                    (cons (generate-id)
+                                          (cdr tokens-raw)))
+                              tokens-raw))
+                  (name.parser (get-cmd-name-and-parser tokens)))
+             (if (not (pair? name.parser))
+                 (list 'generic-invalid-command-error
+                       (cdr tokens)
+                       (λ (tree) tree))
+                 (let* ((cmd-name (car name.parser))
+                        (parser (cdr name.parser))
+                        (interpreter (get-cmd-interpreter cmd-name)))
+                   (if (not (procedure? interpreter))
+                       (list 'generic-invalid-command-error
+                             (cdr tokens)
+                             (λ (tree) tree))
+                       (let ((bindings (parser tokens)))
+                         (if bindings
+                             (interpreter bindings)
+                             (arity-error tokens))))))))))

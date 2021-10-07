@@ -24,6 +24,10 @@
         'exited
         (let ((act (interpret-cmd cmd)))
           (match (action-name act)
+            ('generic-invalid-command-error
+             (begin
+               (displayln "ERROR: something is wrong with your command. Please try again.")
+               (command-loop tree commands)))
             ('invalid-prefix-error
              (begin
                (displayln (format "ERROR: ~a is not a valid command prefix"
