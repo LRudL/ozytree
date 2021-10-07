@@ -32,6 +32,20 @@ Help will eventually be available in the program itself through the currently-un
 
 ## Version history
 ### Pre-release
+#### v0.3.0
+2021-10-07
+
+**Features**:
+
+- Added `help` command that provides a list of commands if supplied with no arguments, and help on a specific command if supplied with a command name.
+- Changed command parsing error messages.
+- Made more arguments in some commands like `make` optional (with default values, enabled by the new command parsing system).
+
+**Internal**:
+- Complete rewrite of command parsing system.
+- Refactor of command defining code (now with a macro that does all the work, need to change only one place to define new commands).
+- Refactor of the command loop in `main.rkt` and of code in `cli.rkt` to integrate with the new command parsing and defining system.8
+
 #### v0.2.0
 2021-10-02
 

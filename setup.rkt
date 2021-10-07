@@ -65,7 +65,7 @@
       (make-directory path)))
 
 (define (run-setup)
-  (displayln "=== OZYTREE (v0.2) ===")
+  (displayln "=== OZYTREE (v0.3.0) ===")
   (displayln "(WARNING: this is an unstable pre-alpha that will destroy your precious tasks and brick your computer).")
   (do-and-inform "Finding directory location: "
                  current-path
