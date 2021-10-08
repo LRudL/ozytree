@@ -162,7 +162,7 @@
                 "View the committed state of the task tree."
                 (λ (bindings-lookup tree commands)
                   (displayln "---------TREE---------")
-                  (print-tree tree)
+                  (print-tree tree #t)
                   (displayln "----------------------")))
 
 (create-command viewing-command preview
@@ -170,7 +170,7 @@
                 "View the state of the task tree if uncommitted changes are applied."
                 (λ (bindings-lookup tree commands)
                   (displayln "----TREE (PREVIEW)----")
-                  (print-tree (apply-actions-to-tree tree commands))
+                  (print-tree (apply-actions-to-tree tree commands) #t)
                   (displayln "----------------------")))
 
 (create-command viewing-command list

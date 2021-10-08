@@ -77,7 +77,7 @@
                                   commits)))
       (configure-id-generator-with-tree current-tree-state)
       (displayln "CURRENT TREE STATE:")
-      (print-tree current-tree-state)
+      (print-tree current-tree-state #t)
       (displayln "Command prompt started (q + enter to quit)")
       (command-loop current-tree-state
                     '()))))

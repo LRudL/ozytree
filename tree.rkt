@@ -114,25 +114,37 @@
 
 ;; TREE PRINTING FUNCTIONS
 
-(define (entry-print entry entire-size)
-  (string-append (task-entry-text entry)
+(define (entry-print entry entire-size (colors? #f))
+  (string-append (if colors? "\x1b[34m\x1b[3m" "")
+                 (task-entry-text entry)
+                 (if colors? "\x1b[0m" "")
                  " (own size: "
+                 (if colors? "\x1b[31m" "")
                  (number->string (task-entry-size entry))
+                 (if colors? "\x1b[0m" "")
                  " / total size: "
+                 (if colors? "\x1b[35m" "")
                  (number->string entire-size)
+                 (if colors? "\x1b[0m" "")
                  ")"))
 
 (define indent "   ")
 
-(define (tree-printed-lines node)
+(define (tree-printed-lines node (colors? #f))
   (cons (string-append (if (equal? 'incomplete (task-state node))
                            "> Task "
-                           " task ")
+                           (string-append
+                            (if colors? "\x1b[2m" "")
+                            " task "
+                            (if colors? "\x1b[0m" "")))
+                       (if colors? "\x1b[1m" "")
                        (number->string (task-id node))
+                       (if colors? "\x1b[0m" "")
                        ": " (entry-print (task-info node)
-                                         (size-of-tree-rooted-at node)))
+                                         (size-of-tree-rooted-at node)
+                                         colors?))
         (map (curry string-append indent)
-             (mapcat tree-printed-lines (task-children node)))))
+             (mapcat (curryr tree-printed-lines colors?) (task-children node)))))
 
-(define (print-tree node)
-  (map displayln (tree-printed-lines node)))
+(define (print-tree node (colors? #f))
+  (map displayln (tree-printed-lines node colors?)))
