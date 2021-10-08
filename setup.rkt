@@ -65,6 +65,9 @@
       (make-directory path)))
 
 (define (run-setup)
+  (display "x1b[2J") ; clear screen
+  (display "\x1b[1;1f") ; move cursor to top-left
+  (display "\x1b[0J") ; clear screen below cursor (needed for some reason??)
   (displayln "\x1b[1m === OZYTREE (v0.3.0) === \x1b[0m")
   (displayln "(WARNING: this is an unstable pre-alpha that will destroy your precious tasks and brick your computer).")
   (do-and-inform "Finding directory location: "
