@@ -153,9 +153,10 @@
                    (maybe (test string->number number-to-undo))))
                 "Undo changes you have made since the last commit (supply number to undo more than one)."
                 (λ (bindings-lookup commands)
-                  (drop commands
-                        (min (bindings-lookup 'number-to-undo)
-                             (length commands)))))
+                  (take commands
+                        (max (- (length commands)
+                                (bindings-lookup 'number-to-undo))
+                             0))))
 
 (create-command viewing-command view
                 ("view")
