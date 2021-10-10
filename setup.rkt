@@ -57,7 +57,9 @@
                 default-data-dir-path)
         'output-location (prompt (string-append "Enter location where reports will be output to; "
                                                 "press enter for " default-report-dir-path)
-                                 default-report-dir-path)))
+                                 default-report-dir-path)
+        'sort-order-type "size"
+        'sort-order-inversion #f))
 
 (define (create-dir-if-not-existing path)
   (if (directory-exists? path)
@@ -68,8 +70,8 @@
   (display "x1b[2J") ; clear screen
   (display "\x1b[1;1f") ; move cursor to top-left
   (display "\x1b[0J") ; clear screen below cursor (needed for some reason??)
-  (displayln "\x1b[1m === OZYTREE (v0.3.0) === \x1b[0m")
-  (displayln "(WARNING: this is an unstable pre-alpha that will destroy your precious tasks and brick your computer).")
+  (displayln "\x1b[1m === OZYTREE (v0.4.0) === \x1b[0m")
+  (displayln "(WARNING: this is an unstable pre-alpha that will destroy your precious tasks and brick your computer)")
   (do-and-inform "Finding directory location: "
                  current-path
                  (λ (path) path))
@@ -89,7 +91,7 @@
                      (cons (data-directory-path)
                            (output-directory-path))
                      (λ (c) (string-append "\n   data location: " (car c)
-                                           "\n   output locations: " (cdr c)))))
+                                           "\n   output location: " (cdr c)))))
   ; Calling this settings.rkt function to reload settings because above config.json changed:
   (refresh-configuration)
   (if (directory-exists? (data-directory-path))

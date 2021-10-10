@@ -17,8 +17,9 @@
   (if (null? actions)
       tree
       (let ((act (car actions)))
+        
         (match (action-name act)
-          ((or 'make 'delete 'move 'set 'mark 'unmark)
+          ((or 'make 'delete 'move 'set 'mark 'unmark 'set-size 'set-text) ; TO-DO: CHANGE!!!
            (apply-actions-to-tree
             ((action-fn act) tree)
             (cdr actions)))

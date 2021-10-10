@@ -66,6 +66,10 @@
                            (displayln "COMMITTED all actions; no unsaved actions left.")
                            (command-loop (apply-actions-to-tree tree commands)
                                          '())))
+                        (settings-commands
+                         (begin
+                           ((action-fn act))
+                           (command-loop tree commands)))
                         (#t (raise "Error: something very strange happened in command-loop"))))))))
 
 (define (start-command-loop)
@@ -78,7 +82,7 @@
       (configure-id-generator-with-tree current-tree-state)
       (displayln "CURRENT TREE STATE:")
       (print-tree current-tree-state #t)
-      (displayln "Command prompt started (q + enter to quit)")
+      (displayln "Command prompt started (q + enter to quit, help + enter for help")
       (command-loop current-tree-state
                     '()))))
 

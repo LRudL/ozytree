@@ -2,6 +2,7 @@
 
 (require racket/file
          racket/path
+         racket/set
          json
          "utils.rkt")
 
@@ -15,6 +16,11 @@
  history-file-path
  temp-file-path
  refresh-configuration ; <- use this if config file is changed and want changes to take effect
+ sort-order-type
+ sort-order-inversion
+ set-sort-order-type
+ invert-sort-order
+ tree-display-settings-table
  )
 
 (define current-path (path->string (current-directory)))
@@ -33,6 +39,14 @@
 
 (define (read-config-from-file)
   (read-json-file config-file-path))
+
+(define (write-config-to-file)
+  (if (jsexpr? config)
+      (let ((port (open-output-file config-file-path
+                                    #:exists 'truncate/replace)))
+        (write-json config port)
+        (close-output-port port))
+      (raise "ERROR: config file has reached an un-JSON-able state.")))
 
 (define config 'run-refresh-before-config-exists)
 
@@ -62,3 +76,27 @@
   (if (file-exists? temp-file-path)
       (file->lines (temp-file-path))
       '()))
+
+; GET/SET SORT ORDER STUFF:
+(define (sort-order-type)
+  (hash-ref config 'sort-order-type "size"))
+
+(define (sort-order-inversion)
+  (hash-ref config 'sort-order-inversion #f))
+
+(define (set-sort-order-type type)
+  (set! config
+        (hash-set config 'sort-order-type type))
+  (write-config-to-file))
+
+(define (invert-sort-order)
+  (set! config
+        (hash-set config 'sort-order-inversion
+                  (not
+                   (hash-ref config 'sort-order-inversion #f))))
+  (write-config-to-file))
+
+; TREE DISPLAY SETTINGS:
+(define (tree-display-settings-table)
+  (hash 'sort-order-type (sort-order-type)
+        'sort-order-inverted? (sort-order-inversion)))

@@ -20,7 +20,8 @@
          size-of-tree-rooted-at
          ; printing:
          tree-printed-lines
-         print-tree)
+         print-tree
+         print-tree-with-settings)
 
 
 (define (put-node-under tree node parent-node-id)
@@ -100,6 +101,31 @@
                max
                tree))
 
+(define (sort-tree-with before? tree)
+  (struct-copy task tree
+               [children
+                (map (curry sort-tree-with before?)
+                     (sort (task-children tree) before?))]))
+
+(define (invert-tree-sorting tree)
+  (struct-copy task tree
+               [children
+                (reverse (task-children tree))]))
+
+(define (tree-size>? a-tree b-tree)
+  (> (size-of-tree-rooted-at a-tree)
+     (size-of-tree-rooted-at b-tree)))
+
+(define (tree-id<? a-tree b-tree)
+  (< (task-id a-tree)
+     (task-id b-tree)))
+
+(define (sort-tree-by-size tree)
+  (sort-tree-with tree-size>? tree))
+
+(define (sort-tree-by-id tree)
+  (sort-tree-with tree-id<? tree))
+
 (define test ; a test tree for testing during development
   (task 0 (task-entry "root" 'incomplete 1)
         (list
@@ -148,3 +174,22 @@
 
 (define (print-tree node (colors? #f))
   (map displayln (tree-printed-lines node colors?)))
+
+(define (apply-tree-sort tree settings)
+  (match (hash-ref settings 'sort-order-type)
+    ("size" (sort-tree-by-size tree))
+    ("id"   (sort-tree-by-id tree))
+    (_      (displayln
+             (format "ERROR: ~a is not a supported tree sort setting"
+                     (hash-ref settings 'sort-order-type))))))
+
+(define (apply-tree-sort-invert tree settings)
+  (if (hash-ref settings 'sort-order-inverted?)
+            (invert-tree-sorting tree)
+            tree))
+
+(define (print-tree-with-settings settings node (colors? #f))
+  (~> node
+      (apply-tree-sort settings)
+      (apply-tree-sort-invert settings)
+      (print-tree colors?)))

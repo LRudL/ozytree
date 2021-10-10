@@ -9,6 +9,7 @@
          "action-structs.rkt"
          "history-management.rkt"
          "command-parse.rkt"
+         "settings.rkt"
          (for-syntax racket/base
                      racket/list
                      racket/function
@@ -20,6 +21,7 @@
          command-list-modifying-commands
          history-modifying-commands
          viewing-commands
+         settings-commands
          command-help-texts
          command-interpreter-table
          command-name-and-parser-pairs)
@@ -28,6 +30,7 @@
 (define command-list-modifying-commands (mutable-set))
 (define history-modifying-commands (mutable-set))
 (define viewing-commands (mutable-set))
+(define settings-commands (mutable-set))
 
 (define command-help-texts (make-hash))
 
@@ -63,12 +66,24 @@
             (define
               ,(list interpreter-name
                      'bindings)
+              ; This function is called to create the last three elements
+              ; of the list that is applied to the action struct (see action-structs.rkt)
               (list ',name
-                    bindings   
+                    bindings
                     (let ((bindings-lookup
                            (λ (v)
                              (hash-ref bindings v))))
-                      (curry ,cmdλ bindings-lookup))))            
+                      ;(curry ,cmdλ bindings-lookup)
+                      (λ args
+                        ; Instead of currying (like the commented-out line), we do this,
+                        ; because otherwise if bindings-lookup is the only argument that
+                        ; cmdλ takes, the above also calls the procedure and makes it run
+                        ; (since it has received a sufficient number of arguments).
+                        ; Could be made to work with this, but then the structure and behaviour
+                        ; of the main command loop in main.rkt would be messier.
+                        (apply ,cmdλ
+                               (append (list bindings-lookup)
+                                       args))))))
             (hash-set! command-interpreter-table ',name ,interpreter-name)
             (set! command-name-and-parser-pairs
                   (cons ,(list cons `',name
@@ -110,21 +125,32 @@
                              (bindings-lookup 'node-id)
                              (bindings-lookup 'new-parent-node-id))))
 
-(create-command tree-modifying-command set
-                ("set" (test string->number node-id)
-                       (test (λ (prop)
-                               (match prop
-                                 ("text" 'text)
-                                 ("size" 'size)
-                                 (_ #f)))
-                             property)
-                       new-val)
-                "Set the text or size property of a task to something different."
-                (λ (bindings-lookup tree)
-                  (set-node-info-prop tree
-                                      (bindings-lookup 'node-id)
-                                      (bindings-lookup 'property)
-                                      (bindings-lookup 'new-val))))
+(define-syntax create-set-command
+  (λ (stx)
+    (let* ((forms (syntax->datum stx))
+           (normal-args (cdr (take forms 4)))
+           (set-type (fifth forms)))
+      (datum->syntax
+       stx
+       (append (list 'create-command 'tree-modifying-command)
+               normal-args
+               (list `(λ (bindings-lookup tree)
+                        (set-node-info-prop tree
+                                            (bindings-lookup 'node-id)
+                                            ,set-type
+                                            (bindings-lookup 'new-val)))))))))
+
+(create-set-command set-size
+                    ("set-size" (test string->number node-id)
+                                (test string->number new-val))
+                    "Set the size of a task to something different."
+                    'size)
+
+(create-set-command set-text
+                    ("set-text" (test string->number node-id)
+                                new-val)
+                    "Set the text description of a task to something different."
+                    'text)
 
 (create-command tree-modifying-command mark
                 ("mark" (test string->number node-id))
@@ -163,7 +189,7 @@
                 "View the committed state of the task tree."
                 (λ (bindings-lookup tree commands)
                   (displayln "---------TREE---------")
-                  (print-tree tree #t)
+                  (print-tree-with-settings (tree-display-settings-table) tree #t)
                   (displayln "----------------------")))
 
 (create-command viewing-command preview
@@ -171,7 +197,9 @@
                 "View the state of the task tree if uncommitted changes are applied."
                 (λ (bindings-lookup tree commands)
                   (displayln "----TREE (PREVIEW)----")
-                  (print-tree (apply-actions-to-tree tree commands) #t)
+                  (print-tree-with-settings (tree-display-settings-table)
+                                            (apply-actions-to-tree tree commands)
+                                            #t)
                   (displayln "----------------------")))
 
 (create-command viewing-command list
@@ -207,7 +235,27 @@
                           (displayln "THE AVAILABLE COMMANDS ARE:")
                           (map (λ (cmd-name)
                                  (displayln (format " - ~a" cmd-name)))
-                               (set->list all-command-names)))))))
+                               (set->list all-command-names))
+                          (displayln "Type 'help' followed by the name of a command for help on that command."))))))
+
+(create-command settings-command sort
+                ("sort" (with-defaults type "invert"
+                          (maybe (test (λ (t)
+                                         (match t
+                                           ("id" "id")
+                                           ("size" "size")
+                                           (_ #f)))
+                                       type))))
+                "If no args: invert current sort order. First arg: new sort order type: id/size."
+                (λ (bindings-lookup)
+                  (let ((type (bindings-lookup 'type)))
+                    (if (equal? type "invert")
+                        (begin
+                          (invert-sort-order)
+                          (displayln "Inverted sort order."))
+                        (begin
+                          (displayln (format "Set sort order to ~a" type))
+                          (set-sort-order-type type))))))
 
 (set! command-name-and-parser-pairs
       ; right now this does nothing;
@@ -222,4 +270,5 @@
             tree-modifying-commands
             command-list-modifying-commands
             viewing-commands
-            history-modifying-commands)
+            history-modifying-commands
+            settings-commands)
