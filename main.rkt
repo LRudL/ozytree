@@ -6,7 +6,6 @@
          racket/match
          racket/set
          threading
-         json
          "utils.rkt"
          "cli.rkt"
          "setup.rkt"
@@ -21,6 +20,40 @@
   (append action-list
           (list act)))
 
+(define (displayer . args)
+  (if (> (length args) 1)
+      (map displayer args)
+      (displayln (car args))))
+
+(define (act-match loop tree commands act)
+  (set-match (action-name act)
+             ((set 'generic-invalid-command-error)
+              (begin
+                (displayer "ERROR: something is wrong with your command"
+                           "       Type 'help' to see command list."
+                           "       Type 'help' followed by a command name to see help for that command.")
+                (loop tree commands)))
+             (tree-modifying-commands              
+              (loop tree
+                    (add-act act commands)))
+             (command-list-modifying-commands              
+              (loop tree
+                    ((action-fn act) commands)))
+             (viewing-commands
+              (begin
+                ((action-fn act) displayer tree commands)
+                (loop tree commands)))
+             (history-modifying-commands
+              (let* ((res ((action-fn act) displayer tree commands))
+                     (new-commands (hash-ref res 'new-commands))
+                     (new-tree (hash-ref res 'new-tree)))
+                (loop new-tree new-commands)))
+             (settings-commands
+              (begin
+                ((action-fn act))
+                (loop tree commands)))
+             (#t (raise "Error: something very strange happened in the command loop."))))
+
 (define (command-loop tree commands)
   (let ((cmd (read-line)))
     (cond ((equal? cmd "q")
@@ -29,48 +62,13 @@
            (displayln "")
            (command-loop tree commands))
           (#t
-           (let ((act (interpret-cmd cmd)))
-             (set-match (action-name act)
-                        ((set 'generic-invalid-command-error)
-                         (begin
-                           (displayln "ERROR: something is wrong with your command")
-                           (displayln "       Type 'help' to see command list.")
-                           (displayln "       Type 'help' followed by a command name to see help for that command.")
-                           (command-loop tree commands)))
-                        (tree-modifying-commands
-                         (begin
-                           (displayln (format "Added ~a action to list"
-                                              (action-name act)))
-                           (command-loop tree
-                                         (add-act act commands))))
-                        (command-list-modifying-commands
-                         (begin
-                           (displayln (format "Changing action list: ~a"
-                                              (action-name act)))
-                           (command-loop tree
-                                         ((action-fn act) commands))))
-                        (viewing-commands
-                         (begin
-                           (cond ((equal? (action-name act) 'view)
-                                  (displayln "(Note: the view command excludes uncommitted changes.)")
-                                  (displayln "(Use the preview command to include uncommitted changes.)"))
-                                 ((equal? (action-name act) 'preview)
-                                  (displayln "(Note: the preview command includes uncommitted changes)")
-                                  (displayln "(Use the view command to view committed changed.)")
-                                  (displayln "(Use the commit command to commit changes.)")))
-                           ((action-fn act) tree commands)
-                           (command-loop tree commands)))
-                        (history-modifying-commands
-                         (begin
-                           ((action-fn act) tree commands)
-                           (displayln "COMMITTED all actions; no unsaved actions left.")
-                           (command-loop (apply-actions-to-tree tree commands)
-                                         '())))
-                        (settings-commands
-                         (begin
-                           ((action-fn act))
-                           (command-loop tree commands)))
-                        (#t (raise "Error: something very strange happened in command-loop"))))))))
+           (with-handlers ((exn:fail?
+                            (λ (e)
+                              (displayln "\x1b[31m AN ERROR OCCURRED: \x1b[0m")
+                              (display e)
+                              (displayln "\nCommand loop successfully recovered.")
+                              (command-loop tree commands))))
+             (act-match command-loop tree commands (interpret-cmd cmd)))))))
 
 (define (start-command-loop)
   (let ((commits (commits-from-file)))

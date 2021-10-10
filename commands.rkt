@@ -98,7 +98,7 @@
                         text
                         (with-defaults size 1
                           (maybe (test string->number size))))
-                "Create a new task. (NOTE: the first argument, new-node-id, is auto-generated)"
+                "Create a new task. (NOTE: the first argument, new-node-id, is auto-generated and should not be supplied)"
                 (λ (bindings-lookup tree)
                   (put-node-under tree
                                   (task (bindings-lookup 'new-node-id)
@@ -187,38 +187,46 @@
 (create-command viewing-command view
                 ("view")
                 "View the committed state of the task tree."
-                (λ (bindings-lookup tree commands)
-                  (displayln "---------TREE---------")
+                (λ (bindings-lookup displayer tree commands)
+                  (displayer "(Note: the view command excludes uncommitted changes.)"
+                             "(Use the preview command to include uncommitted changes.)"
+                             "---------TREE---------")
                   (print-tree-with-settings (tree-display-settings-table) tree #t)
-                  (displayln "----------------------")))
+                  (displayer "----------------------")))
 
 (create-command viewing-command preview
                 ("preview")
                 "View the state of the task tree if uncommitted changes are applied."
-                (λ (bindings-lookup tree commands)
-                  (displayln "----TREE (PREVIEW)----")
+                (λ (bindings-lookup displayer tree commands)
+                  (displayer "(Note: the preview command includes uncommitted changes)"
+                             "(Use the view command to view committed changed.)"
+                             "(Use the commit command to commit changes.)"
+                             "----TREE (PREVIEW)----")
                   (print-tree-with-settings (tree-display-settings-table)
                                             (apply-actions-to-tree tree commands)
                                             #t)
-                  (displayln "----------------------")))
+                  (displayer "----------------------")))
 
 (create-command viewing-command list
                 ("list")
                 "List the (active, non-undone/reset) commands you have entered since the last commit."
-                (λ (bindings-lookup tree commands)
+                (λ (bindings-lookup displayer tree commands)
                   (if (null? commands)
-                      (displayln "No uncommitted actions.")
+                      (displayer "No uncommitted actions.")
                       (begin
-                        (displayln "All uncommitted actions:")
+                        (displayer "All uncommitted actions:")
                         (map (λ (s)
-                               (displayln (string-append " - " s)))
+                               (displayer (string-append " - " s)))
                              (map action-cmd commands))))))
 
 (create-command history-modifying-command commit
                 ("commit")
                 "Commits commands you have entered to your history file."
-                (λ (bindings-lookup tree commands)
-                  (add-commands-to-history-file commands)))
+                (λ (bindings-lookup displayer tree commands)
+                  (add-commands-to-history-file commands)
+                  (displayer "COMMITTED all actions; all actions are now saved.")
+                  (hash 'new-commands '()
+                        'new-tree (apply-actions-to-tree tree commands))))
 
 (create-command viewing-command help
                 ("help" (with-defaults command-name "all"
