@@ -12,6 +12,8 @@
  ; debug printer; println-s a value and then returns it
  butlast
  ; returns all but the last element of a list
+ tail-cons
+ ; takes a list and an element, and returns the list with that element at the end
  all-true?
  ; returns true if there is no #f in a list
  not-all-false?
@@ -85,6 +87,9 @@
   (begin
     (set! x v)
     x))
+
+(define (tail-cons l x)
+  (append l (list x)))
 
 (define (butlast l)
   (take l (- (length l) 1)))

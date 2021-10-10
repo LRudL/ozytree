@@ -14,6 +14,7 @@
 (provide commands->commit
          history-file->commits
          append-commits->history-file
+         overwrite-history-file-with-commits
          base-tree
          (struct-out commit))
 
@@ -73,6 +74,11 @@
 
 (define (append-commits->history-file commits)
   (append-commits->file commits (history-file-path)))
+
+(define (overwrite-history-file-with-commits commits)
+  (display-lines-to-file (commits->lines commits)
+                         (history-file-path)
+                         #:exists 'truncate/replace))
 
 (define base-tree
   (task 0 (task-entry "root" 'incomplete 0)

@@ -5,10 +5,12 @@
          racket/string
          racket/match
          racket/set
+         racket/date
          threading
          "utils.rkt"
          "cli.rkt"
          "setup.rkt"
+         "settings.rkt"
          "tree.rkt"
          "history-management.rkt"
          "history.rkt"
@@ -58,6 +60,11 @@
               (begin
                 ((action-fn act))
                 (loop tree commands)))
+             (enter-history-mode-commands
+              (start-history-manager-loop
+               (λ () ; return function
+                 (configure-id-generator-with-tree tree)
+                 (loop tree commands))))
              (#t (raise "Error: something very strange happened in the command loop."))))
 
 (define (command-loop tree commands)
@@ -70,11 +77,67 @@
           (#t
            (with-handlers ((exn:fail?
                             (λ (e)
-                              (displayln "\x1b[31m AN ERROR OCCURRED: \x1b[0m")
+                              (displayln "\x1b[31m AN ERROR OCCURRED:")
                               (display e)
-                              (displayln "\nCommand loop successfully recovered.")
+                              (displayln " \x1b[0m\nCommand loop successfully recovered.")
                               (command-loop tree commands))))
              (act-match command-loop tree commands (interpret-cmd cmd)))))))
+
+(define (history-viewer-printout history current-commit future)
+  (clear-terminal-screen)
+  (displayer "\x1b[1m Ozytree History Browser \x1b[0m"
+             (format "Commit ~a of ~a, committed at ~a"
+                     (length history)
+                     (+ (length history) (length future))
+                     (date->string (commit-time current-commit) #t))
+             "~~~~~~~~"
+             "AVAILABLE COMMANDS:"
+             "b = back / f or nothing = forwards"
+             "rollback = irreversibly revert to this point in history"
+             "done = exit history view"
+             "~~~~~~~~"
+             "The state of your task tree at this time:")
+  (configure-id-generator-with-tree base-tree)
+  (print-tree-with-settings (tree-display-settings-table)
+                            (apply-commits-to-tree base-tree
+                                                   (reverse
+                                                    (cons current-commit
+                                                          history)))
+                            #t))
+
+(define (history-manager-loop command-loop-resumer history current future)
+  (history-viewer-printout history current future)
+  (let ((cmd (read-line)))
+    (cond ((equal? cmd "done")
+           (clear-terminal-screen)
+           (displayln "Exited history viewer.")           
+           (command-loop-resumer))
+          ((or (equal? cmd "")
+               (equal? cmd "f"))
+           (history-manager-loop command-loop-resumer
+                                 (cons current history)
+                                 (car future)
+                                 (cdr future)))
+          ((equal? cmd "b")
+           (history-manager-loop command-loop-resumer
+                                 (cdr history)
+                                 (car history)
+                                 (cons current future)))
+          ((equal? cmd "rollback")
+           (overwrite-history-file-with-commits
+            (reverse (cons current history)))
+           (start-history-manager-loop command-loop-resumer))
+          (#t (begin
+                (displayln "Invalid command in history loop, exiting")
+                (command-loop-resumer))))))
+
+(define (start-history-manager-loop command-loop-resumer)
+  (configure-id-generator-with-tree base-tree)
+  (let ((commit-history-reversed (reverse (history-file->commits))))
+    (history-manager-loop command-loop-resumer
+                          (cdr commit-history-reversed)
+                          (car commit-history-reversed)
+                          '())))
 
 (define (start-command-loop)
   (let ((commits (history-file->commits)))

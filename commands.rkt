@@ -21,6 +21,7 @@
          history-modifying-commands
          viewing-commands
          settings-commands
+         enter-history-mode-commands
          command-help-texts
          command-interpreter-table
          command-name-and-parser-pairs)
@@ -30,6 +31,7 @@
 (define history-modifying-commands (mutable-set))
 (define viewing-commands (mutable-set))
 (define settings-commands (mutable-set))
+(define enter-history-mode-commands (mutable-set))
 
 (define command-help-texts (make-hash))
 
@@ -201,8 +203,10 @@
                              "----TREE (PREVIEW)----")
                   (print-tree-with-settings
                    (tree-display-settings-table)
-                   ((hash-ref history-functions 'apply-actions-to-tree) tree commands)
-                                            #t)
+                   ((hash-ref history-functions 'apply-actions-to-tree)
+                    tree
+                    commands)
+                   #t)
                   (displayer "----------------------")))
 
 (create-command viewing-command list
@@ -267,6 +271,12 @@
                           (displayln (format "Set sort order to ~a" type))
                           (set-sort-order-type type))))))
 
+(create-command enter-history-mode-command history
+                ("history-mode")
+                "Go into history viewing mode."
+                (λ (bindings-lookup)
+                  'done))
+
 (set! command-name-and-parser-pairs
       ; right now this does nothing;
       ; in the future if there are two different commands that match,
@@ -281,4 +291,5 @@
             command-list-modifying-commands
             viewing-commands
             history-modifying-commands
-            settings-commands)
+            settings-commands
+            enter-history-mode-commands)

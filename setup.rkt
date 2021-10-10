@@ -10,7 +10,8 @@
          (for-syntax racket/base
                      racket/list))
 
-(provide run-setup)
+(provide run-setup
+         clear-terminal-screen)
 
 (define-syntax do-and-inform
   (λ (stx)
@@ -66,10 +67,14 @@
       #t
       (make-directory path)))
 
-(define (run-setup)
+(define (clear-terminal-screen)
   (display "x1b[2J") ; clear screen
   (display "\x1b[1;1f") ; move cursor to top-left
   (display "\x1b[0J") ; clear screen below cursor (needed for some reason??)
+)
+
+(define (run-setup)
+  (clear-terminal-screen)
   (displayln "\x1b[1m === OZYTREE (v0.4.0) === \x1b[0m")
   (displayln "(WARNING: this is an unstable pre-alpha that will destroy your precious tasks and brick your computer)")
   (do-and-inform "Finding directory location: "
