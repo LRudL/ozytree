@@ -32,14 +32,32 @@ Help will eventually be available in the program itself through the currently-un
 
 ## Version history
 ### Pre-release
+#### v0.4.0
+2021-10-10
+
+**Features**:
+- Coloured text to make the tree easier to read, some other ANSI escape code -related niceness.
+- Sorting options: the `sort` command, with options for sorting by the task size (including children), by task id, and for inverting the sort order.
+- Saving of sorting settings.
+- *BREAKING CHANGE:* The `set` command has been replaced with `set-size` and `set-text`.
+
+**Bug fixes**:
+- The `undo` command removes commands from the list in the right order (rather than the reverse order: least recently added first).
+
+**Internal**:
+- Refactoring of the `create-command` macro to enable adding argumentless commands more easily.
+
 #### v0.3.0
 2021-10-07
 
 **Features**:
 
-- Added `help` command that provides a list of commands if supplied with no arguments, and help on a specific command if supplied with a command name.
+- Added `help` command
 - Changed command parsing error messages.
 - Made more arguments in some commands like `make` optional (with default values, enabled by the new command parsing system).
+
+**Bug fixes**:
+- Entering a blank line as a command no longer crashes the program.
 
 **Internal**:
 - Complete rewrite of command parsing system.
