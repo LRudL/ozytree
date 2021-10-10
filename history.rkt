@@ -7,11 +7,14 @@
          threading
          "utils.rkt"
          "settings.rkt"
-         "action-structs.rkt")
+         "action-structs.rkt"
+         "tree-structs.rkt"
+         "cli.rkt")
 
 (provide commands->commit
          history-file->commits
          append-commits->history-file
+         base-tree
          (struct-out commit))
 
 (define (action->line act)
@@ -31,7 +34,7 @@
       (string->number)
       (seconds->date)))
 
-(struct commit (time commands))
+(struct commit (time commands) #:transparent)
 
 (define (commands->commit commands)
   (commit (current-date)
@@ -53,12 +56,12 @@
   (commit (string->commit-time header)
           (map command-interpreter commands)))
 
-(define (history-file->commits command-interpreter)
+(define (history-file->commits)
   (~>> (history-file-path)
        (file->lines)
        ((labelled-segments-from-list-maker
          (curry prefix? commit-prefix)
-         (curry commit-from-header command-interpreter)))))
+         (curry commit-from-header interpret-cmd)))))
 
 (define (commits->lines commits)
   (mapcat commit->lines commits))
@@ -71,4 +74,6 @@
 (define (append-commits->history-file commits)
   (append-commits->file commits (history-file-path)))
 
-
+(define base-tree
+  (task 0 (task-entry "root" 'incomplete 0)
+        (list)))

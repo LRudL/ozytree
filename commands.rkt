@@ -7,7 +7,6 @@
          "utils.rkt"
          "tree.rkt"
          "action-structs.rkt"
-         "history-management.rkt"
          "command-parse.rkt"
          "settings.rkt"
          (for-syntax racket/base
@@ -185,7 +184,7 @@
 (create-command viewing-command view
                 ("view")
                 "View the committed state of the task tree."
-                (λ (bindings-lookup displayer tree commands)
+                (λ (bindings-lookup displayer history-functions tree commands)
                   (displayer "(Note: the view command excludes uncommitted changes.)"
                              "(Use the preview command to include uncommitted changes.)"
                              "---------TREE---------")
@@ -195,20 +194,21 @@
 (create-command viewing-command preview
                 ("preview")
                 "View the state of the task tree if uncommitted changes are applied."
-                (λ (bindings-lookup displayer tree commands)
+                (λ (bindings-lookup displayer history-functions tree commands)
                   (displayer "(Note: the preview command includes uncommitted changes)"
                              "(Use the view command to view committed changed.)"
                              "(Use the commit command to commit changes.)"
                              "----TREE (PREVIEW)----")
-                  (print-tree-with-settings (tree-display-settings-table)
-                                            (apply-actions-to-tree tree commands)
+                  (print-tree-with-settings
+                   (tree-display-settings-table)
+                   ((hash-ref history-functions 'apply-actions-to-tree) tree commands)
                                             #t)
                   (displayer "----------------------")))
 
 (create-command viewing-command list
                 ("list")
                 "List the (active, non-undone/reset) commands you have entered since the last commit."
-                (λ (bindings-lookup displayer tree commands)
+                (λ (bindings-lookup displayer history-functions tree commands)
                   (if (null? commands)
                       (displayer "No uncommitted actions.")
                       (begin
@@ -220,11 +220,15 @@
 (create-command history-modifying-command commit
                 ("commit")
                 "Commits commands you have entered to your history file."
-                (λ (bindings-lookup displayer tree commands)
-                  (add-commands-to-history-file commands)
+                (λ (bindings-lookup displayer history-functions-table tree commands)
+                  ((hash-ref history-functions-table
+                             'add-commands-to-history-file)
+                   commands)
                   (displayer "COMMITTED all actions; all actions are now saved.")
                   (hash 'new-commands '()
-                        'new-tree (apply-actions-to-tree tree commands))))
+                        'new-tree ((hash-ref history-functions-table
+                                             'apply-actions-to-tree)
+                                   tree commands))))
 
 (create-command viewing-command help
                 ("help" (with-defaults command-name "all"

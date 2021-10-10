@@ -11,7 +11,7 @@
          "setup.rkt"
          "tree.rkt"
          "history-management.rkt"
-         "history-loading.rkt"
+         "history.rkt"
          "commands.rkt"
          (for-syntax racket/base
                      racket/list))
@@ -41,10 +41,16 @@
                     ((action-fn act) commands)))
              (viewing-commands
               (begin
-                ((action-fn act) displayer tree commands)
+                ((action-fn act) displayer
+                                 history-functions-table
+                                 tree
+                                 commands)
                 (loop tree commands)))
              (history-modifying-commands
-              (let* ((res ((action-fn act) displayer tree commands))
+              (let* ((res ((action-fn act) displayer
+                                           history-functions-table
+                                           tree
+                                           commands))
                      (new-commands (hash-ref res 'new-commands))
                      (new-tree (hash-ref res 'new-tree)))
                 (loop new-tree new-commands)))
@@ -71,7 +77,7 @@
              (act-match command-loop tree commands (interpret-cmd cmd)))))))
 
 (define (start-command-loop)
-  (let ((commits (commits-from-file)))
+  (let ((commits (history-file->commits)))
     (displayln (format "Loaded ~a commits from your history file"
                        (length commits)))
     (let ((current-tree-state
@@ -80,7 +86,7 @@
       (configure-id-generator-with-tree current-tree-state)
       (displayln "CURRENT TREE STATE:")
       (print-tree current-tree-state #t)
-      (displayln "Command prompt started (q + enter to quit, help + enter for help")
+      (displayln "Command prompt started (q + enter to quit, help + enter for help)")
       (command-loop current-tree-state
                     '()))))
 
