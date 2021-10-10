@@ -156,17 +156,15 @@
                 ("mark" (test string->number node-id))
                 "Mark a task node as completed."
                 (λ (bindings-lookup tree)
-                  (set-node-info-prop tree
-                                      (bindings-lookup 'node-id)
-                                      'state 'complete)))
+                  (mark-node-as-complete tree
+                                         (bindings-lookup 'node-id))))
 
 (create-command tree-modifying-command unmark
                 ("unmark" (test string->number node-id))
                 "Mark a task node as incomplete."
                 (λ (bindings-lookup tree)
-                  (set-node-info-prop tree
-                                      (bindings-lookup 'node-id)
-                                      'state 'incomplete)))
+                  (mark-node-as-incomplete tree
+                                           (bindings-lookup 'node-id))))
 
 (create-command command-list-modifying-command reset
                 ("reset")

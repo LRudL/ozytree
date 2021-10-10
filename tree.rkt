@@ -18,6 +18,8 @@
          set-node-info-prop
          max-id-in-tree-rooted-at
          size-of-tree-rooted-at
+         mark-node-as-complete
+         mark-node-as-incomplete
          ; printing:
          tree-printed-lines
          print-tree
@@ -100,6 +102,35 @@
   (node-reduce task-id
                max
                tree))
+
+(define (descendant-ids-of tree)
+  (map task-id
+       (node-reduce task-children append tree)))
+
+(define (descendant-ids-and-self-id-of tree)
+  (cons (task-id tree)
+        (descendant-ids-of tree)))
+
+(define (set-info-prop-in-node-list tree prop id-val-pairs)
+  (foldl (λ (next-pair tree*)
+           (let ((next-id (car next-pair))
+                 (new-val (cdr next-pair)))
+             (set-node-info-prop tree* next-id prop new-val)))
+         tree
+         id-val-pairs))
+
+(define (set-completion-state-of-node tree node-id state)
+  (set-info-prop-in-node-list tree 'state
+                              (map (λ (id)
+                                     (cons id state))
+                                   (descendant-ids-and-self-id-of
+                                    (get-node tree node-id)))))
+
+(define (mark-node-as-complete tree node-id)
+  (set-completion-state-of-node tree node-id 'complete))
+
+(define (mark-node-as-incomplete tree node-id)
+  (set-completion-state-of-node tree node-id 'incomplete))
 
 (define (sort-tree-with before? tree)
   (struct-copy task tree
