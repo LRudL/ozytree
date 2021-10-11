@@ -28,10 +28,30 @@ You need [Racket](https://racket-lang.org/).
 
 Once you have Racket, and have downloaded the Ozytree source folder, navigate into it and run `racket main.rkt`. If it is your first time starting Ozytree, you will be guided through the configuration process.
 
-Help will eventually be available in the program itself through the currently-unimplemented `help` command.
+Help is available in the program itself through the `help` command.
 
 ## Version history
+### Planned features
+- Setting deadlines
+- Sort option by deadline and by size divided by time to deadline.
+- Setting to hide/unhide completed.
+- Jumping to a specific state in the history viewer.
+
 ### Pre-release
+#### v0.5.0
+2021-10-11
+
+**Features**:
+- Marking/unmarking a node (i.e. saying it is complete/incomplete) now automatically applies to all descendant nodes of the node.
+- History viewer: the `history-mode` command will take you into a special mode where you can navigate forwards and backwards in time, and also rollback to a previous state in history.
+
+**Bug fixes**:
+- Crashes when interpreting a command are now caught and the command loop continues, rather than the Ozytree itself crashing completely.
+
+**Internal**:
+- Refactored command loop code.
+- Refactored the dependency structure of the history-related modules, especially as they relate to command interpretation.
+
 #### v0.4.0
 2021-10-10
 
