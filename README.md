@@ -38,6 +38,12 @@ Help is available in the program itself through the `help` command.
 - Jumping to a specific state in the history viewer.
 
 ### Pre-release
+#### v0.5.1
+2021-10-11
+
+**Bug fixes**:
+- Commits broken because of function missing in the history functions table.
+
 #### v0.5.0
 2021-10-11
 
@@ -46,7 +52,7 @@ Help is available in the program itself through the `help` command.
 - History viewer: the `history-mode` command will take you into a special mode where you can navigate forwards and backwards in time, and also rollback to a previous state in history.
 
 **Bug fixes**:
-- Crashes when interpreting a command are now caught and the command loop continues, rather than the Ozytree itself crashing completely.
+- Crashes when interpreting a command are now caught and the command loop continues, rather than Ozytree itself crashing completely.
 
 **Internal**:
 - Refactored command loop code.
