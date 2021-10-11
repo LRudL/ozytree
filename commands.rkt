@@ -238,7 +238,7 @@
                 ("help" (with-defaults command-name "all"
                           (maybe command-name)))
                 "If no args: view list of commands; else, view help info for command specified in first argument."
-                (λ (bindings-lookup tree commands)
+                (λ (bindings-lookup displayer history-functions tree commands)
                   (let ((cmd-name (bindings-lookup 'command-name)))
                     (if (set-member? all-command-names (string->symbol cmd-name))
                         (begin
@@ -271,7 +271,7 @@
                           (displayln (format "Set sort order to ~a" type))
                           (set-sort-order-type type))))))
 
-(create-command enter-history-mode-command history
+(create-command enter-history-mode-command history-mode
                 ("history-mode")
                 "Go into history viewing mode."
                 (λ (bindings-lookup)
