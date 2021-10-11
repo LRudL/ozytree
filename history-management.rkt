@@ -33,4 +33,5 @@
 
 (define history-functions-table
   (hash 'apply-actions-to-tree apply-actions-to-tree
-        'apply-commits-to-tree apply-commits-to-tree))
+        'apply-commits-to-tree apply-commits-to-tree
+        'add-commands-to-history-file add-commands-to-history-file))
