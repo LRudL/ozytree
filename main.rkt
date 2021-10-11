@@ -86,9 +86,9 @@
 (define (history-viewer-printout history current-commit future)
   (clear-terminal-screen)
   (displayer "\x1b[1m Ozytree History Browser \x1b[0m"
-             (format "Commit ~a of ~a, committed at ~a"
-                     (length history)
-                     (+ (length history) (length future))
+             (format "Commit \x1b[1m\x1b[32m~a of ~a\x1b[0m, committed at \x1b[1m\x1b[32m~a\x1b[0m"
+                     (+ 1 (length history))
+                     (+ (length history) (length future) 1)
                      (date->string (commit-time current-commit) #t))
              "~~~~~~~~"
              "AVAILABLE COMMANDS:"
@@ -109,26 +109,29 @@
   (history-viewer-printout history current future)
   (let ((cmd (read-line)))
     (cond ((equal? cmd "done")
-           (clear-terminal-screen)
-           (displayln "Exited history viewer.")           
+           (displayln "\x1b[1m Exited history viewer. \x1b[0m")           
            (command-loop-resumer))
           ((or (equal? cmd "")
                (equal? cmd "f"))
-           (history-manager-loop command-loop-resumer
-                                 (cons current history)
-                                 (car future)
-                                 (cdr future)))
+           (if (null? future)
+               (history-manager-loop command-loop-resumer history current future)
+               (history-manager-loop command-loop-resumer
+                                     (cons current history)
+                                     (car future)
+                                     (cdr future))))
           ((equal? cmd "b")
-           (history-manager-loop command-loop-resumer
-                                 (cdr history)
-                                 (car history)
-                                 (cons current future)))
+           (if (null? history)               
+               (history-manager-loop command-loop-resumer history current future)
+               (history-manager-loop command-loop-resumer
+                                     (cdr history)
+                                     (car history)
+                                     (cons current future))))
           ((equal? cmd "rollback")
            (overwrite-history-file-with-commits
             (reverse (cons current history)))
            (start-history-manager-loop command-loop-resumer))
           (#t (begin
-                (displayln "Invalid command in history loop, exiting")
+                (displayln "\x1b[1m Invalid command in history loop, exiting \x1b[0m")
                 (command-loop-resumer))))))
 
 (define (start-history-manager-loop command-loop-resumer)
