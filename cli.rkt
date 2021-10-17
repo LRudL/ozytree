@@ -3,21 +3,16 @@
          racket/function
          threading
          "utils.rkt"
+         "idgen.rkt"
          "tree.rkt"
          "action-structs.rkt"
-         "history-management.rkt"
          "commands.rkt"
          (for-syntax racket/base))
 
 (provide tokenise
          get-interpreter
          (struct-out action)
-         configure-id-generator-with-tree
          interpret-cmd)
-
-; To enable hacky eval magic later on:
-(define-namespace-anchor namespace-anchor)
-(define ns (namespace-anchor->namespace namespace-anchor))
 
 (define (tokeniser-acc word-list in-string? current-word)
   (cons in-string?
@@ -48,37 +43,6 @@
        (filter (compose not null?))
        (map list->string)))
 
-; make 0 "blah blah solve physics" 1
-; delete 0
-; set 0 text "new text"
-; set 0 size 3
-; mark 0
-; unmark 0
-; move 3 under 4
-; swap 2 4
-
-; delete lists like above: reset
-
-; undo
-; undo 3
-
-; show tree as in saved files: view
-; show tree including uncommitted: preview
-; append to file: commit
-
-
-(define generate-id
-  (λ () 'if-you-see-this-something-horrible-has-happened))
-
-(define (get-generator initial-value)
-  (define value initial-value)
-  (λ ()
-    (set! value (+ 1 value))
-    value))
-
-(define (configure-id-generator-with-tree tree)
-  (set! generate-id (get-generator (max-id-in-tree-rooted-at tree))))
-
 (define (generic-error tokens)
   (list 'generic-invalid-command-error
         (cdr tokens)
@@ -107,7 +71,7 @@
 (define (interpret-cmd s)
   (apply
    action
-   (append (list s)                 
+   (append (list s)
            (let* ((tokens-raw (tokenise s))
                   (tokens (if (equal? (car tokens-raw) "make")
                               ; Hacky: make takes as an extra argument the
@@ -120,7 +84,7 @@
                                           (cdr tokens-raw)))
                               tokens-raw))
                   (name.parser (get-cmd-name-and-parser tokens)))
-             (if (not (pair? name.parser))                 
+             (if (not (pair? name.parser))
                  (generic-error tokens)
                  (let* ((cmd-name (car name.parser))
                         (parser (cdr name.parser))

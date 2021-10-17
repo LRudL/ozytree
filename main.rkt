@@ -8,6 +8,7 @@
          racket/date
          threading
          "utils.rkt"
+         "idgen.rkt"
          "cli.rkt"
          "setup.rkt"
          "settings.rkt"
@@ -62,9 +63,11 @@
                 (loop tree commands)))
              (enter-history-mode-commands
               (start-history-manager-loop
-               (λ () ; return function
-                 (configure-id-generator-with-tree tree)
-                 (loop tree commands))))
+               ((λ (set-id-generator-to) ; return function generator
+                  (λ ()
+                    (restart-id-generator-at! set-id-generator-to)
+                    (loop tree commands)))
+                (- (generate-id) 1))))
              (#t (raise "Error: something very strange happened in the command loop."))))
 
 (define (command-loop tree commands)
@@ -93,11 +96,10 @@
              "~~~~~~~~"
              "AVAILABLE COMMANDS:"
              "b = back / f or nothing = forwards"
-             "rollback = irreversibly revert to this point in history"
+             "rollback = irreversibly revert to this point in history, delete everything since then"
              "done = exit history view"
              "~~~~~~~~"
              "The state of your task tree at this time:")
-  (configure-id-generator-with-tree base-tree)
   (print-tree-with-settings (tree-display-settings-table)
                             (apply-commits-to-tree base-tree
                                                    (reverse
@@ -128,14 +130,14 @@
                                      (cons current future))))
           ((equal? cmd "rollback")
            (overwrite-history-file-with-commits
-            (reverse (cons current history)))
-           (start-history-manager-loop command-loop-resumer))
+            (reverse (cons current history))
+            base-tree)
+           (start-command-loop))
           (#t (begin
                 (displayln "\x1b[1m Invalid command in history loop, exiting \x1b[0m")
                 (command-loop-resumer))))))
 
 (define (start-history-manager-loop command-loop-resumer)
-  (configure-id-generator-with-tree base-tree)
   (let ((commit-history-reversed (reverse (history-file->commits))))
     (history-manager-loop command-loop-resumer
                           (cdr commit-history-reversed)
@@ -149,13 +151,11 @@
     (let ((current-tree-state
            (apply-commits-to-tree base-tree
                                   commits)))
-      (configure-id-generator-with-tree current-tree-state)
       (displayln "CURRENT TREE STATE:")
-      (print-tree current-tree-state #t)
+      (print-tree-with-settings (tree-display-settings-table) current-tree-state #t)
       (displayln "Command prompt started (q + enter to quit, help + enter for help)")
       (command-loop current-tree-state
                     '()))))
 
 (run-setup)
-(configure-id-generator-with-tree base-tree)
 (start-command-loop)

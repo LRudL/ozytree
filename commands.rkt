@@ -5,6 +5,7 @@
          racket/set
          racket/function
          "utils.rkt"
+         "idgen.rkt"
          "tree.rkt"
          "action-structs.rkt"
          "command-parse.rkt"
@@ -98,11 +99,18 @@
                           (maybe (test string->number parent-id)))
                         text
                         (with-defaults size 1
-                          (maybe (test string->number size))))
+                          (maybe (test string->number size)))
+                        (with-defaults recovered-node-id -1
+                          (maybe recovered-node-id)))
                 "Create a new task. (NOTE: the first argument, new-node-id, is auto-generated and should not be supplied)"
                 (λ (bindings-lookup tree)
                   (put-node-under tree
-                                  (task (bindings-lookup 'new-node-id)
+                                  (task (if (equal? (bindings-lookup 'recovered-node-id)
+                                                    -1)
+                                            (bindings-lookup 'new-node-id)
+                                            (string->number
+                                             (substring (bindings-lookup 'recovered-node-id)
+                                                        2)))
                                         (task-entry (bindings-lookup 'text)
                                                     'incomplete
                                                     (bindings-lookup 'size))
@@ -227,12 +235,11 @@
                 (λ (bindings-lookup displayer history-functions-table tree commands)
                   ((hash-ref history-functions-table
                              'add-commands-to-history-file)
-                   commands)
-                  (displayer "COMMITTED all actions; all actions are now saved.")
-                  (hash 'new-commands '()
-                        'new-tree ((hash-ref history-functions-table
-                                             'apply-actions-to-tree)
-                                   tree commands))))
+                   commands tree)
+                  (displayer "COMMITTED. No unsaved changes left.")
+                  (let ((new-tree ((hash-ref history-functions-table 'history-file->tree))))
+                    (hash 'new-commands '()
+                          'new-tree new-tree))))
 
 (create-command viewing-command help
                 ("help" (with-defaults command-name "all"

@@ -4,11 +4,14 @@
          racket/string
          racket/function
          racket/file
+         racket/list
          threading
          "utils.rkt"
+         "idgen.rkt"
          "settings.rkt"
          "action-structs.rkt"
          "tree-structs.rkt"
+         "tree.rkt"
          "cli.rkt")
 
 (provide commands->commit
@@ -39,7 +42,10 @@
 
 (define (commands->commit commands)
   (commit (current-date)
-          commands))
+          (if (and (not (null? commands))
+                   (not (string? (car commands))))
+              (map action->line commands)
+              commands)))
 
 (define commit-prefix ">>>>>>>>")
 
@@ -48,37 +54,58 @@
                  " COMMIT ON "
                  (commit-time->string (commit-time c))))
 
-(define (commit->lines c)
+(define (commit->lines max-previous-id c)
   (cons (commit->commit-header-line c)
-        (map action->line
+        (map (λ (cmd-string)
+               (if (and (prefix? "make" cmd-string)
+                        (not (prefix? "->"
+                                      ; prevent rollback-related overwrite from adding more IDs
+                                      (last (string-split cmd-string)))))
+                   (string-append cmd-string " ->"
+                                  (number->string
+                                   (hash-ref (action-props (interpret-cmd cmd-string))
+                                             'new-node-id)))
+                   cmd-string))
              (commit-commands c))))
 
-(define (commit-from-header command-interpreter header commands)
+(define (commit-from-header header commands)
   (commit (string->commit-time header)
-          (map command-interpreter commands)))
+          ;(map command-interpreter commands)
+          commands ; ^ don't want to interpret already, since that assigns IDs to nodes
+          ))
 
 (define (history-file->commits)
   (~>> (history-file-path)
        (file->lines)
        ((labelled-segments-from-list-maker
          (curry prefix? commit-prefix)
-         (curry commit-from-header interpret-cmd)))))
+         commit-from-header))))
 
-(define (commits->lines commits)
-  (mapcat commit->lines commits))
+(define (commits->lines commits max-previous-id)
+  (mapcat (curry commit->lines max-previous-id) commits))
 
-(define (append-commits->file commits file-path)
-  (display-lines-to-file (commits->lines commits)
-                         file-path
-                         #:exists 'append))
+(define (append-commits->file commits file-path on-top-of-tree)
+  (let* ((tree-max-id (max-id-in-tree-rooted-at on-top-of-tree))
+         (idgen-resumer (restart-id-generator!-and-get-resumer
+                         tree-max-id)))
+    (display-lines-to-file (commits->lines commits tree-max-id)
+                           file-path
+                           #:exists 'append)
+    (idgen-resumer)))
 
-(define (append-commits->history-file commits)
-  (append-commits->file commits (history-file-path)))
+(define (append-commits->history-file commits on-top-of-tree)
+  (append-commits->file commits
+                        (history-file-path)
+                        on-top-of-tree))
 
-(define (overwrite-history-file-with-commits commits)
-  (display-lines-to-file (commits->lines commits)
-                         (history-file-path)
-                         #:exists 'truncate/replace))
+(define (overwrite-history-file-with-commits commits on-top-of-tree)
+  (let* ((tree-max-id (max-id-in-tree-rooted-at on-top-of-tree))
+         (idgen-resumer (restart-id-generator!-and-get-resumer
+                         tree-max-id)))
+    (display-lines-to-file (commits->lines commits tree-max-id)
+                           (history-file-path)
+                           #:exists 'truncate/replace)
+    (idgen-resumer)))
 
 (define base-tree
   (task 0 (task-entry "root" 'incomplete 0)
