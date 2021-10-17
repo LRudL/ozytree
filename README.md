@@ -38,6 +38,15 @@ Help is available in the program itself through the `help` command.
 - Jumping to a specific state in the history viewer.
 
 ### Pre-release
+#### v0.5.2
+2021-10-17
+
+**Bug fixes**:
+- Fixed a series of complicated bugs relating to ID generation for tasks and its interaction with commits, `history-mode` (and the rollback feature of `history-mode`), and restoring tree state from the history file.
+
+**Internal**:
+- `history.txt` now includes task IDs next to lines for `make` commands, both for human readability and to ensure compatibility with future versions without breaking changes (previous system meantIDs were only implicit, so any change to ID generation semantics would be potentially breaking between versions).
+
 #### v0.5.1
 2021-10-11
 
