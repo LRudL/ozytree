@@ -191,6 +191,12 @@
                                 (bindings-lookup 'number-to-undo))
                              0))))
 
+(create-command command-list-modifying-command reverse-entropy
+                ("reverse-entropy")
+                "Undo a random number of changes you have made since the last commit so as to reduce the entropy of your document while keeping the entropy of the universe the same."
+                (λ (bindings-lookup commands)
+                  (take commands (random (length commands)))))
+
 (create-command viewing-command view
                 ("view")
                 "View the committed state of the task tree."
